@@ -19,17 +19,21 @@ def compute_hash(path: Path) -> str:
 
 def group_duplicates(entries: list[FileEntry]) -> None:
     """Ustawia content_hash i duplicate_of in-place. Hashuje tylko pliki
-    o powtarzajacym sie rozmiarze (pre-filtr). Oryginal = pierwszy wg sciezki."""
+    o powtarzajacym sie rozmiarze (pre-filtr). Oryginal = pierwszy wg sciezki.
+    Pliki nieczytelne (OSError) sa pomijane bez oznaczania duplikatu."""
     by_size: dict[int, list[FileEntry]] = defaultdict(list)
     for e in entries:
         by_size[e.size].append(e)
 
-    seen: dict[str, FileEntry] = {}
     for group in by_size.values():
         if len(group) < 2:
             continue
+        seen: dict[str, FileEntry] = {}
         for e in sorted(group, key=lambda x: str(x.path)):
-            e.content_hash = compute_hash(e.path)
+            try:
+                e.content_hash = compute_hash(e.path)
+            except OSError:
+                continue  # plik nieczytelny/zniknal -> pomijamy
             original = seen.get(e.content_hash)
             if original is None:
                 seen[e.content_hash] = e

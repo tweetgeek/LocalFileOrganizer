@@ -33,3 +33,23 @@ def test_group_duplicates_size_prefilter_skips_unique_sizes(tmp_path):
     # rozne rozmiary -> nie hashujemy, brak duplikatow
     assert all(e.duplicate_of is None for e in entries)
     assert all(e.content_hash is None for e in entries)
+
+
+def test_group_duplicates_skips_unreadable_file(tmp_path, monkeypatch):
+    import local_file_organizer.hashing as hashing
+    a = tmp_path / "a.txt"; a.write_text("dup")
+    b = tmp_path / "b.txt"; b.write_text("dup")
+    entries = [_entry(a), _entry(b)]
+    real = hashing.compute_hash
+
+    def flaky(path):
+        if path == a:
+            raise PermissionError("brak dostepu")
+        return real(path)
+
+    monkeypatch.setattr(hashing, "compute_hash", flaky)
+    hashing.group_duplicates(entries)  # nie podnosi wyjatku
+    by_name = {e.path.name: e for e in entries}
+    assert by_name["a.txt"].content_hash is None   # pominiety
+    assert by_name["a.txt"].duplicate_of is None
+    assert by_name["b.txt"].duplicate_of is None    # a pominiety, wiec b to oryginal
