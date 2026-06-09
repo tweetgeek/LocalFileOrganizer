@@ -50,3 +50,13 @@ def test_scan_excludes_dest_dir(tmp_path):
     cfg = Config(source_dir=src, dest_dir=out)
     entries = scan(cfg)
     assert [e.path.name for e in entries] == ["new.txt"]
+
+
+def test_scan_non_recursive_skips_subdirs(tmp_path):
+    cfg = _cfg(tmp_path, recursive=False)
+    sub = cfg.source_dir / "sub"
+    sub.mkdir()
+    (sub / "hidden.txt").write_text("x")
+    (cfg.source_dir / "visible.txt").write_text("x")
+    entries = scan(cfg)
+    assert [e.path.name for e in entries] == ["visible.txt"]
