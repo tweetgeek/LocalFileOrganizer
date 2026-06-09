@@ -15,8 +15,13 @@ def scan(config: Config) -> list[FileEntry]:
     src = config.source_dir.resolve()
     dst = config.dest_dir.resolve()
     entries: list[FileEntry] = []
+    visited: set[Path] = set()
 
     def walk(directory: Path, depth: int) -> None:
+        real = directory.resolve()
+        if real in visited:
+            return  # ochrona przed cyklami symlinkow
+        visited.add(real)
         try:
             children = sorted(directory.iterdir())
         except PermissionError:
@@ -33,10 +38,14 @@ def scan(config: Config) -> list[FileEntry]:
                 if config.recursive and depth < config.max_depth:
                     walk(child, depth + 1)
             elif child.is_file():
+                try:
+                    size = child.stat().st_size
+                except OSError:
+                    continue  # plik zniknal lub niedostepny -> pomijamy
                 entries.append(
                     FileEntry(
                         path=child,
-                        size=child.stat().st_size,
+                        size=size,
                         ext=child.suffix.lstrip(".").lower(),
                     )
                 )
