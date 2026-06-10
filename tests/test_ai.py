@@ -2,7 +2,6 @@ import httpx
 import pytest
 from local_file_organizer.config import Config
 from local_file_organizer.models import FileEntry
-from local_file_organizer.classify import ai as ai_mod
 from local_file_organizer.classify.ai import (
     OllamaClient,
     build_prompt,
@@ -160,3 +159,41 @@ def test_classify_on_error_abort(tmp_path, monkeypatch):
     e = _txt_entry(tmp_path, "f.txt", "x")
     with pytest.raises(httpx.ConnectError):
         classify_entries([e], cfg, cache=None)
+
+
+def test_classify_parse_error_skips_only_that_entry(tmp_path, monkeypatch):
+    # serwer zywy, ale jedna odpowiedz jest bledna -> pomijamy tylko ten plik
+    cfg = _cfg(tmp_path, on_error="fallback")
+    calls = []
+
+    def flaky(self, prompt):
+        calls.append(1)
+        if len(calls) == 1:
+            raise ValueError("zepsuty JSON")
+        return {"category": "faktury", "confidence": 0.95}
+
+    monkeypatch.setattr(OllamaClient, "classify", flaky)
+    e1 = _txt_entry(tmp_path, "a.txt", "tresc a")
+    e2 = _txt_entry(tmp_path, "b.txt", "tresc b zupelnie inna")
+    classify_entries([e1, e2], cfg, cache=None)
+    assert e1.ai_category is None        # pierwszy pominiety (parse error)
+    assert e2.ai_category == "faktury"   # drugi sklasyfikowany (continue, nie return)
+    assert len(calls) == 2
+
+
+def test_classify_connection_error_stops_remaining(tmp_path, monkeypatch):
+    # awaria polaczenia -> przerywamy AI dla calej reszty (brak N timeoutow)
+    cfg = _cfg(tmp_path, on_error="fallback")
+    calls = []
+
+    def boom(self, prompt):
+        calls.append(1)
+        raise httpx.ConnectError("brak polaczenia")
+
+    monkeypatch.setattr(OllamaClient, "classify", boom)
+    e1 = _txt_entry(tmp_path, "a.txt", "tresc a")
+    e2 = _txt_entry(tmp_path, "b.txt", "tresc b zupelnie inna")
+    classify_entries([e1, e2], cfg, cache=None)
+    assert e1.ai_category is None
+    assert e2.ai_category is None
+    assert len(calls) == 1               # po bledzie polaczenia nie wolamy drugi raz
