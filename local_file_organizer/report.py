@@ -22,6 +22,7 @@ def build_summary(plan: Plan, entries: list[FileEntry], applied: bool) -> dict:
     unsorted = sum(1 for m in plan.moves if m.reason == Reason.UNSORTED)
     ai_count = sum(1 for m in plan.moves if m.reason == Reason.AI)
     review_count = sum(1 for m in plan.moves if m.reason == Reason.REVIEW)
+    # ai_from_cache liczy wpisy (oszczednosci wywolan Ollamy), nie przeniesienia
     from_cache = sum(1 for e in entries if e.ai_from_cache)
     suggestions = [
         (str(e.path), e.ai_suggestion) for e in entries if e.ai_suggestion
@@ -69,11 +70,11 @@ def render_console(summary: dict) -> None:
     if summary["encrypted"]:
         console.print("\n[bold]Pliki zabezpieczone haslem:[/bold]")
         for path, fmt in summary["encrypted"]:
-            console.print(f"  - {path} ({fmt})")
+            console.print(f"  - {path} ({fmt})", markup=False)
     if summary["suggestions"]:
         console.print("\n[bold]Sugestie nowych kategorii (do_przejrzenia):[/bold]")
         for path, name in summary["suggestions"]:
-            console.print(f"  - {path} -> {name}")
+            console.print(f"  - {path} -> {name}", markup=False)
 
 
 def write_json(summary: dict, output: Path) -> None:
