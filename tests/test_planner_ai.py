@@ -33,6 +33,7 @@ def test_ai_review_goes_to_review_dir(tmp_path):
     assert m.reason == Reason.REVIEW
     assert m.dest == cfg.dest_dir / "do_przejrzenia" / "cos.pdf"
     assert "paragony" in m.note
+    assert m.category is None
 
 
 def test_no_ai_fields_behaves_like_base(tmp_path):
@@ -42,3 +43,14 @@ def test_no_ai_fields_behaves_like_base(tmp_path):
     m = plan.moves[0]
     assert m.reason == Reason.BASE
     assert m.dest == cfg.dest_dir / "dokumenty" / "zwykly.pdf"
+
+
+def test_ai_category_without_base_goes_under_unsorted(tmp_path):
+    cfg = _cfg(tmp_path, mode="category", categories={"dokumenty": ["pdf"]})
+    e = _entry(tmp_path, "notatka.txt", ai_category="faktury")
+    plan = build_plan([e], cfg)
+    m = plan.moves[0]
+    assert m.reason == Reason.AI
+    assert m.subcategory == "faktury"
+    assert m.category is None  # brak bazowego dopasowania dla .txt
+    assert m.dest == cfg.dest_dir / "unsorted" / "faktury" / "notatka.txt"
