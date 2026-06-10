@@ -11,6 +11,8 @@ from .executor import apply_plan
 from .hashing import group_duplicates
 from .planner import build_plan
 from .report import build_summary, render_console, write_json
+from .cache import AICache
+from .classify.ai import classify_entries
 from .scanner import scan
 from .security import detect_password
 from .undo import UndoStore
@@ -56,6 +58,12 @@ def run(
             if detect_password(e.path, e.ext, cfg.password_detection.formats):
                 e.is_encrypted = True
                 e.encrypted_format = e.ext
+    if cfg.ai.enabled:
+        if cfg.cache.enabled:
+            with AICache(cfg.cache.path) as cache:
+                classify_entries(entries, cfg, cache)
+        else:
+            classify_entries(entries, cfg, None)
     plan = build_plan(entries, cfg)
 
     applied = False
