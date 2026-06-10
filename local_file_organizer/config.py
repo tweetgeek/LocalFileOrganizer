@@ -39,8 +39,8 @@ class AIConfig(BaseModel):
     extensions: list[str] = Field(
         default_factory=lambda: ["pdf", "txt", "md", "docx"]
     )
-    max_chars: int = 4000
-    confidence_threshold: float = 0.7
+    max_chars: int = Field(default=4000, gt=0)
+    confidence_threshold: float = Field(default=0.7, ge=0.0, le=1.0)
     on_error: Literal["fallback", "abort"] = "fallback"
     allow_suggestions: bool = True
     taxonomy: dict[str, str] = Field(default_factory=dict)
