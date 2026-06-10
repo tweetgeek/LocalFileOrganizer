@@ -44,7 +44,11 @@ def run(
     mode: Optional[str] = typer.Option(None, "--mode"),
     apply: bool = typer.Option(False, "--apply", help="Wykonaj realne przeniesienia"),
 ) -> None:
-    cfg = _resolve_config(config, source, dest, mode)
+    try:
+        cfg = _resolve_config(config, source, dest, mode)
+    except (ValueError, OSError, yaml.YAMLError) as exc:
+        typer.echo(f"Blad konfiguracji: {exc}")
+        raise typer.Exit(code=1)
     entries = scan(cfg)
     group_duplicates(entries)
     if cfg.password_detection.enabled:
@@ -77,7 +81,14 @@ def undo(
     db: Path = typer.Option(Path("./.lfo_cache.sqlite"), "--db"),
 ) -> None:
     with UndoStore(db) as store:
-        target = store.last_run_id() if run_id == "last" else int(run_id)
+        if run_id == "last":
+            target = store.last_run_id()
+        else:
+            try:
+                target = int(run_id)
+            except ValueError:
+                typer.echo(f"Nieprawidlowy run_id: '{run_id}'. Podaj liczbe lub 'last'.")
+                raise typer.Exit(code=1)
         if target is None:
             typer.echo("Brak przebiegow do cofniecia.")
             raise typer.Exit(code=1)
