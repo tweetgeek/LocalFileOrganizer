@@ -73,3 +73,19 @@ def test_cli_source_dest_override(tmp_path):
     )
     assert result.exit_code == 0
     assert (out / "txt" / "a.txt").exists()
+
+
+def test_undo_invalid_run_id_is_clean_error(tmp_path):
+    db = tmp_path / "cache.sqlite"
+    result = runner.invoke(app, ["undo", "abc", "--db", str(db)])
+    assert result.exit_code == 1
+    assert "abc" in result.output
+
+
+def test_run_missing_source_is_clean_error(tmp_path):
+    result = runner.invoke(
+        app,
+        ["run", "--source", str(tmp_path / "nie_ma"), "--dest", str(tmp_path / "out")],
+    )
+    assert result.exit_code == 1
+    assert "konfiguracj" in result.output.lower()
