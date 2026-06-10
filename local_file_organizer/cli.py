@@ -59,11 +59,15 @@ def run(
                 e.is_encrypted = True
                 e.encrypted_format = e.ext
     if cfg.ai.enabled:
-        if cfg.cache.enabled:
-            with AICache(cfg.cache.path) as cache:
-                classify_entries(entries, cfg, cache)
-        else:
-            classify_entries(entries, cfg, None)
+        try:
+            if cfg.cache.enabled:
+                with AICache(cfg.cache.path) as cache:
+                    classify_entries(entries, cfg, cache)
+            else:
+                classify_entries(entries, cfg, None)
+        except Exception as exc:
+            typer.echo(f"Blad AI (on_error=abort): {exc}")
+            raise typer.Exit(code=1)
     plan = build_plan(entries, cfg)
 
     applied = False
