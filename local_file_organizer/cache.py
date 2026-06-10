@@ -16,12 +16,22 @@ class AICache:
         )
         self.conn.commit()
 
+    def close(self) -> None:
+        self.conn.close()
+
+    def __enter__(self) -> "AICache":
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        self.close()
+
     @staticmethod
     def make_key(file_hash: str, model: str, taxonomy: dict[str, str]) -> str:
         tax = hashlib.sha256(
             json.dumps(taxonomy, sort_keys=True, ensure_ascii=False).encode("utf-8")
         ).hexdigest()[:16]
-        return f"{file_hash}:{model}:{tax}"
+        model_safe = model.replace(":", "_")
+        return f"{file_hash}:{model_safe}:{tax}"
 
     def get(self, key: str) -> dict | None:
         row = self.conn.execute(
