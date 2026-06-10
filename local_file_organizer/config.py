@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 
 class DedupConfig(BaseModel):
+    enabled: bool = False
     method: Literal["hash"] = "hash"
     action: Literal["quarantine", "report_only"] = "quarantine"
 
