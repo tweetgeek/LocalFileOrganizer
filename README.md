@@ -16,7 +16,11 @@ Wykonanie:
 
     lfo run --config examples/lfo.yaml --apply
 
-Cofniecie ostatniego przebiegu:
+Cofniecie ostatniego przebiegu (sciezka bazy z konfiguracji):
+
+    lfo undo last --config examples/lfo.yaml
+
+albo wskaz baze bezposrednio:
 
     lfo undo last --db ./.lfo_cache.sqlite
 

@@ -89,3 +89,29 @@ def test_run_missing_source_is_clean_error(tmp_path):
     )
     assert result.exit_code == 1
     assert "konfiguracj" in result.output.lower()
+
+
+def test_undo_derives_db_from_config(tmp_path):
+    src = tmp_path / "src"; src.mkdir()
+    (src / "setup.zip").write_text("aplikacja instalacyjna")
+    out = tmp_path / "out"
+    db = tmp_path / "custom_cache.sqlite"
+    cfg = {
+        "source_dir": str(src),
+        "dest_dir": str(out),
+        "mode": "category",
+        "categories": {"apps": ["zip"]},
+        "password_detection": {"enabled": False},
+        "cache": {"path": str(db)},
+    }
+    yaml_path = tmp_path / "lfo.yaml"
+    yaml_path.write_text(yaml.safe_dump(cfg), encoding="utf-8")
+
+    runner.invoke(app, ["run", "--config", str(yaml_path), "--apply"])
+    assert (out / "apps" / "setup.zip").exists()
+
+    # undo using --config only (no --db): must find the run in the custom cache path
+    result = runner.invoke(app, ["undo", "last", "--config", str(yaml_path)])
+    assert result.exit_code == 0
+    assert (src / "setup.zip").exists()
+    assert not (out / "apps" / "setup.zip").exists()
