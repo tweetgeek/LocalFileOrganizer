@@ -21,3 +21,19 @@ password_detection: { enabled: true, formats: [pdf, zip, 7z, rar, docx, xlsx] }
 
 report: { format: [console, json], output: ./lfo-report.json }
 cache:  { enabled: true, path: ./.lfo_cache.sqlite }
+
+review_dir: do_przejrzenia
+
+ai:
+  enabled: true
+  provider: ollama
+  endpoint: http://localhost:11434
+  model: llama3.2
+  extensions: [pdf, txt, md, docx]
+  max_chars: 4000
+  confidence_threshold: 0.7
+  on_error: fallback
+  allow_suggestions: true
+  taxonomy:
+    faktury: "zawiera NIP, slowo 'faktura', kwoty, dane firmy"
+    umowy:   "zawiera 'umowa', strony, paragrafy"

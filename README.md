@@ -48,4 +48,15 @@ Wykrywanie hasla dla archiwow `.rar` wymaga zewnetrznego narzedzia `unrar`
 lub `bsdtar` w PATH. Jego brak nie powoduje bledu — taki plik jest po prostu
 traktowany jako niezabezpieczony (detekcja jest best-effort).
 
-> Klasyfikacja AI (Ollama) jest dostarczana w osobnym planie (Plan 2).
+## Klasyfikacja AI (Ollama)
+
+Gdy `ai.enabled: true`, dla rozszerzen z `ai.extensions` aplikacja czyta tresc,
+wysyla fragment do Ollamy i przypisuje podkategorie z `ai.taxonomy`
+(np. `dokumenty/faktury/`). Niepewne wyniki (ponizej `confidence_threshold`)
+i sugestie nowych kategorii trafiaja do `do_przejrzenia/`. Wyniki sa
+cache'owane po hashu pliku — duplikaty i ponowne uruchomienia nie wolaja
+modelu. Przy niedostepnej Ollamie `on_error: fallback` schodzi do trybu
+bazowego (a `abort` przerywa z czytelnym komunikatem).
+
+Wymaga uruchomionej Ollamy (`ollama serve`) i pobranego modelu
+(`ollama pull llama3.2`).
