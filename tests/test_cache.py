@@ -1,3 +1,5 @@
+import sqlite3
+import pytest
 from local_file_organizer.cache import AICache
 
 
@@ -21,3 +23,17 @@ def test_make_key_changes_with_taxonomy(tmp_path):
     assert k1 != k2
     assert k1 == k3
     assert k1.startswith("HASH:llama3.2:")
+
+
+def test_suggested_name_roundtrip(tmp_path):
+    cache = AICache(tmp_path / "c.sqlite")
+    cache.put("k", {"category": "nieznane", "confidence": 0.4, "suggested_name": "paragony"})
+    got = cache.get("k")
+    assert got["suggested_name"] == "paragony"
+
+
+def test_cache_context_manager_closes(tmp_path):
+    with AICache(tmp_path / "c.sqlite") as cache:
+        cache.put("k", {"category": "x", "confidence": 0.5, "suggested_name": None})
+    with pytest.raises(sqlite3.ProgrammingError):
+        cache.conn.execute("SELECT 1")  # polaczenie zamkniete po wyjsciu z with
