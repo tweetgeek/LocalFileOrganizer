@@ -71,15 +71,30 @@ def run(
     summary = build_summary(plan, entries, applied)
     if "console" in cfg.report.format:
         render_console(summary)
-    if "json" in cfg.report.format and cfg.report.output is not None:
-        write_json(summary, cfg.report.output)
+    if "json" in cfg.report.format:
+        if cfg.report.output is not None:
+            write_json(summary, cfg.report.output)
+        else:
+            typer.echo("Uwaga: format 'json' wybrany, ale brak 'report.output' — pomijam zapis JSON.")
 
 
 @app.command()
 def undo(
     run_id: str = typer.Argument("last", help="ID przebiegu lub 'last'"),
-    db: Path = typer.Option(Path("./.lfo_cache.sqlite"), "--db"),
+    config: Optional[Path] = typer.Option(
+        None, "--config", "-c", help="Plik YAML, z ktorego brana jest cache.path"
+    ),
+    db: Optional[Path] = typer.Option(
+        None, "--db", help="Sciezka bazy undo (nadpisuje config)"
+    ),
 ) -> None:
+    if db is None:
+        if config is not None:
+            data = yaml.safe_load(Path(config).read_text(encoding="utf-8")) or {}
+            cache = data.get("cache") or {}
+            db = Path(cache.get("path", "./.lfo_cache.sqlite"))
+        else:
+            db = Path("./.lfo_cache.sqlite")
     with UndoStore(db) as store:
         if run_id == "last":
             target = store.last_run_id()

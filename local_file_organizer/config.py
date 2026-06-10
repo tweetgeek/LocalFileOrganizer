@@ -20,7 +20,7 @@ class PasswordConfig(BaseModel):
 
 
 class ReportConfig(BaseModel):
-    format: list[Literal["console", "json", "md"]] = Field(
+    format: list[Literal["console", "json"]] = Field(
         default_factory=lambda: ["console"]
     )
     output: Path | None = None
