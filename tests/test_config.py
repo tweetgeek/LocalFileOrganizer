@@ -48,3 +48,23 @@ def test_load_config_from_yaml(tmp_path):
     )
     cfg = load_config(yaml_path)
     assert cfg.mode == "type"
+
+
+def test_ai_defaults(tmp_path):
+    src = tmp_path / "src"; src.mkdir()
+    cfg = Config(source_dir=src, dest_dir=tmp_path / "out")
+    assert cfg.ai.enabled is False
+    assert cfg.ai.model == "llama3.2"
+    assert cfg.ai.confidence_threshold == 0.7
+    assert cfg.ai.on_error == "fallback"
+    assert cfg.review_dir == "do_przejrzenia"
+
+
+def test_ai_taxonomy_parsed(tmp_path):
+    src = tmp_path / "src"; src.mkdir()
+    cfg = Config(
+        source_dir=src, dest_dir=tmp_path / "out",
+        ai={"enabled": True, "taxonomy": {"faktury": "zawiera NIP"}},
+    )
+    assert cfg.ai.enabled is True
+    assert cfg.ai.taxonomy["faktury"] == "zawiera NIP"
