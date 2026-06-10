@@ -103,15 +103,21 @@ def classify_entries(
                 entry.ai_from_cache = True
 
         if result is None:
+            prompt = build_prompt(
+                entry.path.name, text, ai.taxonomy, ai.allow_suggestions
+            )
             try:
-                prompt = build_prompt(
-                    entry.path.name, text, ai.taxonomy, ai.allow_suggestions
-                )
                 result = client.classify(prompt)
-            except Exception:
+            except httpx.TransportError:
+                # serwer niedostepny/timeout -> przerwij AI dla calej reszty
                 if ai.on_error == "abort":
                     raise
-                return  # fallback: przerwij AI, reszta poleci trybem bazowym
+                return
+            except Exception:
+                # bledna odpowiedz dla tego pliku -> pomijamy go, probujemy nastepny
+                if ai.on_error == "abort":
+                    raise
+                continue
             if cache is not None:
                 cache.put(
                     AICache.make_key(entry.content_hash, ai.model, ai.taxonomy),
