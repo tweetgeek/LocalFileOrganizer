@@ -59,6 +59,7 @@ def build_plan(entries: list[FileEntry], config: Config) -> Plan:
         if entry.ai_review:
             target_dir = dest_root / config.review_dir
             reason = Reason.REVIEW
+            category = None
         else:
             if category is None:
                 base_dir = dest_root / config.unknown_dir
