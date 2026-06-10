@@ -1,3 +1,4 @@
+import pytest
 from pathlib import Path
 from local_file_organizer.models import Plan, PlannedMove, Reason
 from local_file_organizer.undo import UndoStore
@@ -61,3 +62,18 @@ def test_apply_never_overwrites_existing_dest(tmp_path):
     assert dest.read_text() == "istniejace"   # nie nadpisane
     assert f.exists()                          # zrodlo nietkniete
     assert len(plan.errors) == 1
+
+
+def test_undo_invalid_run_id_raises(tmp_path):
+    store = UndoStore(tmp_path / "db.sqlite")
+    with pytest.raises(ValueError):
+        store.undo_run(99999)
+
+
+def test_undo_store_context_manager_closes(tmp_path):
+    import sqlite3
+    with UndoStore(tmp_path / "db.sqlite") as store:
+        rid = store.start_run()
+        store.finish_run(rid)
+    with pytest.raises(sqlite3.ProgrammingError):
+        store.conn.execute("SELECT 1")  # polaczenie zamkniete po wyjsciu z with

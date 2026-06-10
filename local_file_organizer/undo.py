@@ -19,6 +19,15 @@ class UndoStore:
         )
         self.conn.commit()
 
+    def close(self) -> None:
+        self.conn.close()
+
+    def __enter__(self) -> "UndoStore":
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        self.close()
+
     def start_run(self) -> int:
         cur = self.conn.execute("INSERT INTO runs (ts) VALUES (?)", (time.time(),))
         self.conn.commit()
@@ -45,8 +54,13 @@ class UndoStore:
         return int(row[0]) if row else None
 
     def undo_run(self, run_id: int) -> dict:
+        if self.conn.execute(
+            "SELECT 1 FROM runs WHERE id = ?", (run_id,)
+        ).fetchone() is None:
+            raise ValueError(f"przebieg o id {run_id} nie istnieje")
         moves = self.conn.execute(
-            "SELECT source, dest FROM moves WHERE run_id = ?", (run_id,)
+            "SELECT source, dest FROM moves WHERE run_id = ? ORDER BY rowid DESC",
+            (run_id,),
         ).fetchall()
         restored = 0
         for source, dest in moves:

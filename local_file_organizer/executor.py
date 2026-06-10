@@ -24,6 +24,8 @@ def apply_plan(plan: Plan, undo_store: UndoStore) -> dict:
                 if parent not in created_dirs:
                     created_dirs.add(parent)
                     undo_store.record_dir(run_id, parent)
+            # dest.exists() guard powyzej wyklucza tez katalog o tej nazwie;
+            # planner emituje wylacznie sciezki plikow, wiec move nie przekieruje do katalogu
             shutil.move(str(move.source), str(move.dest))
             undo_store.record_move(run_id, move.source, move.dest)
             moved += 1
