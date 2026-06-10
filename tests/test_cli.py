@@ -7,8 +7,8 @@ runner = CliRunner()
 
 def _make_yaml(tmp_path):
     src = tmp_path / "src"; src.mkdir()
-    (src / "setup.zip").write_text("x")
-    (src / "model.stl").write_text("x")
+    (src / "setup.zip").write_text("aplikacja instalacyjna")
+    (src / "model.stl").write_text("model 3d ascii")
     cfg = {
         "source_dir": str(src),
         "dest_dir": str(tmp_path / "out"),

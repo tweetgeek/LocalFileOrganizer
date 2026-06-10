@@ -46,8 +46,7 @@ def run(
 ) -> None:
     cfg = _resolve_config(config, source, dest, mode)
     entries = scan(cfg)
-    if cfg.dedup.enabled:
-        group_duplicates(entries)
+    group_duplicates(entries)
     if cfg.password_detection.enabled:
         for e in entries:
             if detect_password(e.path, e.ext, cfg.password_detection.formats):
