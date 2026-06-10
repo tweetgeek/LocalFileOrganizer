@@ -27,10 +27,13 @@ def test_source_and_dest_must_differ(tmp_path):
 
 
 def test_extra_keys_ignored(tmp_path):
-    # sekcja ai: jest ignorowana w Planie 1
+    # nieznane klucze (spoza modelu) sa pomijane dzieki extra="ignore"
     src = tmp_path / "src"
     src.mkdir()
-    cfg = Config(source_dir=src, dest_dir=tmp_path / "out", ai={"enabled": True})
+    cfg = Config(
+        source_dir=src, dest_dir=tmp_path / "out",
+        zupelnie_nieznany_klucz={"x": 1},
+    )
     assert cfg.source_dir == src
 
 
@@ -68,3 +71,16 @@ def test_ai_taxonomy_parsed(tmp_path):
     )
     assert cfg.ai.enabled is True
     assert cfg.ai.taxonomy["faktury"] == "zawiera NIP"
+
+
+def test_ai_confidence_threshold_out_of_range_rejected(tmp_path):
+    src = tmp_path / "src"; src.mkdir()
+    with pytest.raises(ValueError):
+        Config(source_dir=src, dest_dir=tmp_path / "out",
+               ai={"confidence_threshold": 70})
+
+
+def test_ai_max_chars_must_be_positive(tmp_path):
+    src = tmp_path / "src"; src.mkdir()
+    with pytest.raises(ValueError):
+        Config(source_dir=src, dest_dir=tmp_path / "out", ai={"max_chars": 0})
