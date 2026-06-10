@@ -1,6 +1,6 @@
 from pathlib import Path
 from local_file_organizer.models import FileEntry, Plan, PlannedMove, Reason
-from local_file_organizer.report import build_summary
+from local_file_organizer.report import build_summary, render_console
 
 
 def test_summary_counts_ai_and_review_and_cache():
@@ -21,3 +21,19 @@ def test_summary_counts_ai_and_review_and_cache():
     assert summary["review_count"] == 1
     assert summary["ai_from_cache"] == 1
     assert ("/src/cos.pdf", "paragony") in summary["suggestions"]
+
+
+def test_render_console_handles_brackets_without_crash(capsys):
+    summary = build_summary(
+        Plan(),
+        [
+            FileEntry(
+                path=Path("/src/raport[1].pdf"), size=1, ext="pdf",
+                is_encrypted=True, encrypted_format="pdf", ai_suggestion="kat[2]",
+            )
+        ],
+        applied=False,
+    )
+    render_console(summary)  # nie moze rzucic MarkupError mimo nawiasow kwadratowych
+    out = capsys.readouterr().out
+    assert "raport[1].pdf" in out
