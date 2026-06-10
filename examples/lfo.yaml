@@ -7,10 +7,16 @@ ignore: [".git", "node_modules", ".*"]
 follow_symlinks: false
 
 categories:
-  apps:      [zip, dmg, exe, pkg]
-  3dprint:   [stl, 3mf, obj, gcode]
-  dokumenty: [pdf, doc, docx, odt]
-  obrazy:    [jpg, png, gif, webp]
+  apps:      [dmg, pkg, exe, apk, msi]
+  archives:  [zip, rar, 7z, tar, gz, tgz]
+  3dprint:   [stl, 3mf, obj, gcode, amf, step, stp]
+  cad:       [dwg, dxf, skp]
+  docs:      [pdf, doc, docx, odt, txt, md]
+  images:    [jpg, jpeg, png, gif, webp, heic, heif, bmp, tiff, svg]
+  audio:     [mp3, wav, flac, ogg, aac, m4a, aiff]
+  videos:    [mp4, mov, avi, mkv, hevc]
+  data:      [json, xml, csv, yaml, yml]
+  code:      [py, html, js, css, php, java, c, cpp, h, hpp]
 
 unknown_dir:    unsorted
 duplicates_dir: duplikaty
