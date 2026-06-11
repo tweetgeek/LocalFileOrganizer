@@ -34,3 +34,35 @@ def test_write_json_roundtrip(tmp_path):
     write_json(summary, out)
     loaded = json.loads(out.read_text(encoding="utf-8"))
     assert loaded["moved_count"] == 3
+
+
+def test_summary_lists_unsorted_files():
+    src1 = Path("/src/mystery.xyz")
+    src2 = Path("/src/setup.zip")
+    entries = [
+        FileEntry(path=src1, size=1, ext="xyz"),
+        FileEntry(path=src2, size=1, ext="zip"),
+    ]
+    plan = Plan(moves=[
+        PlannedMove(source=src1, dest=Path("/out/unsorted/mystery.xyz"),
+                    reason=Reason.UNSORTED),
+        PlannedMove(source=src2, dest=Path("/out/apps/setup.zip"),
+                    reason=Reason.BASE, category="apps"),
+    ])
+    summary = build_summary(plan, entries, applied=False)
+    assert summary["unsorted"] == 1
+    assert summary["unsorted_files"] == ["/src/mystery.xyz"]
+
+
+def test_render_console_shows_unsorted_files(capsys):
+    from local_file_organizer.report import render_console
+    src = Path("/src/mystery.xyz")
+    plan = Plan(moves=[
+        PlannedMove(source=src, dest=Path("/out/unsorted/mystery.xyz"),
+                    reason=Reason.UNSORTED),
+    ])
+    summary = build_summary(plan, [FileEntry(path=src, size=1, ext="xyz")], applied=False)
+    render_console(summary)
+    out = capsys.readouterr().out
+    assert "unsorted" in out.lower()
+    assert "mystery.xyz" in out

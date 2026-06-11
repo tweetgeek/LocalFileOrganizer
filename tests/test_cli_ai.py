@@ -85,3 +85,38 @@ def test_run_ai_abort_shows_clean_error(tmp_path, monkeypatch):
     result = runner.invoke(app, ["run", "--config", str(yaml_path), "--apply"])
     assert result.exit_code == 1
     assert "AI" in result.output
+
+
+def test_run_with_openai_provider_routes_to_subcategory(tmp_path, monkeypatch):
+    from local_file_organizer.classify.ai import OpenAIClient
+
+    src = tmp_path / "src"; src.mkdir()
+    (src / "faktura.txt").write_text("tresc z NIP 123", encoding="utf-8")
+    out = tmp_path / "out"
+    cfg = {
+        "source_dir": str(src),
+        "dest_dir": str(out),
+        "mode": "category",
+        "categories": {"dokumenty": ["txt"]},
+        "password_detection": {"enabled": False},
+        "cache": {"path": str(tmp_path / "c.sqlite")},
+        "ai": {
+            "enabled": True,
+            "provider": "openai",
+            "endpoint": "http://localhost:1234/v1",
+            "model": "google/gemma-4-e4b",
+            "extensions": ["txt"],
+            "taxonomy": {"faktury": "zawiera NIP"},
+        },
+    }
+    yaml_path = tmp_path / "lfo.yaml"
+    yaml_path.write_text(yaml.safe_dump(cfg), encoding="utf-8")
+
+    monkeypatch.setattr(
+        OpenAIClient, "classify",
+        lambda self, prompt: {"category": "faktury", "confidence": 0.95},
+    )
+
+    result = runner.invoke(app, ["run", "--config", str(yaml_path), "--apply"])
+    assert result.exit_code == 0
+    assert (out / "dokumenty" / "faktury" / "faktura.txt").exists()
