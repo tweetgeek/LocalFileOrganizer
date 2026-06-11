@@ -22,3 +22,16 @@ def test_unsupported_extension_returns_none(tmp_path):
 def test_broken_pdf_returns_none(tmp_path):
     f = tmp_path / "broken.pdf"; f.write_text("to nie jest pdf", encoding="utf-8")
     assert extract_text(f, "pdf", 100) is None
+
+
+def test_pdf_warnings_are_silenced(tmp_path, caplog):
+    import logging
+
+    bad = tmp_path / "f.pdf"
+    bad.write_bytes(b'\xef\xbb\xbf{"x": 1}')  # nie-PDF z BOM -> pypdf normalnie spamuje WARNING
+    extract_text(bad, "pdf", 100)
+    noisy = [
+        r for r in caplog.records
+        if r.name.startswith("pypdf") and r.levelno < logging.ERROR
+    ]
+    assert noisy == []
