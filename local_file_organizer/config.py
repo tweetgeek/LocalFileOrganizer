@@ -37,6 +37,7 @@ class AIConfig(BaseModel):
     endpoint: str = "http://localhost:11434"
     model: str = "llama3.2"
     api_key: str | None = None
+    json_mode: Literal["json_object", "json_schema", "off"] = "json_object"
     extensions: list[str] = Field(
         default_factory=lambda: ["pdf", "txt", "md", "docx"]
     )

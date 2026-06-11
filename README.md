@@ -71,10 +71,19 @@ Ustaw w konfiguracji:
       provider: openai
       endpoint: http://localhost:1234/v1   # LM Studio: baza z /v1
       model: google/gemma-4-e4b            # nazwa modelu zaladowanego w serwerze
+      json_mode: json_schema               # patrz nizej; LM Studio wymaga json_schema
       api_key: null                        # opcjonalnie, dla serwerow wymagajacych klucza
 
-Klient wysyla `POST /chat/completions` z `response_format: json_object` i
-`temperature: 0`. Male modele (np. Gemma 4B) bywaja mniej karne w formacie
-JSON — pojedyncza wadliwa odpowiedz jest pomijana (plik leci dalej), a trwaly
-blad serwera (np. 401 zly klucz, 404 zly model) przerywa caly etap AI
-(w trybie `fallback` schodzi do trybu bazowego, w `abort` daje czytelny blad).
+Klient wysyla `POST /chat/completions` z `temperature: 0`. Sposob wymuszania
+JSON okresla `ai.json_mode`:
+
+- `json_object` (domyslny) — dziala z OpenAI, vLLM, Ollama `/v1`.
+- `json_schema` — structured output; **wymagany przez LM Studio** (zwraca 400
+  na `json_object`). Wymusza czysty JSON wg schematu i eliminuje "rozgadanie"
+  malych modeli — zalecany dla Gemmy.
+- `off` — bez `response_format`; klient i tak wyciaga JSON z odpowiedzi
+  (zdejmuje ogrodzenia markdown i tekst dookola).
+
+Trwaly blad serwera (np. 401 zly klucz, 404 zly model, 400 zly json_mode)
+przerywa caly etap AI: w trybie `fallback` schodzi do trybu bazowego, w
+`abort` daje czytelny blad.
