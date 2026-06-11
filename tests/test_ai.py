@@ -197,3 +197,55 @@ def test_classify_connection_error_stops_remaining(tmp_path, monkeypatch):
     assert e1.ai_category is None
     assert e2.ai_category is None
     assert len(calls) == 1               # po bledzie polaczenia nie wolamy drugi raz
+
+
+def test_openai_client_parses_response_and_sends_auth(monkeypatch):
+    captured = {}
+
+    def fake_post(url, json, headers, timeout):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["json"] = json
+        return _Resp({"choices": [{"message": {"content": '{"category": "umowy", "confidence": 0.8}'}}]})
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    from local_file_organizer.classify.ai import OpenAIClient
+    client = OpenAIClient("http://localhost:1234/v1", "gemma", api_key="sk-x")
+    result = client.classify("prompt")
+    assert result["category"] == "umowy"
+    assert captured["url"].endswith("/chat/completions")
+    assert captured["headers"]["Authorization"] == "Bearer sk-x"
+    assert captured["json"]["response_format"] == {"type": "json_object"}
+    assert captured["json"]["messages"][0]["content"] == "prompt"
+
+
+def test_openai_client_without_api_key_has_no_auth_header(monkeypatch):
+    captured = {}
+
+    def fake_post(url, json, headers, timeout):
+        captured["headers"] = headers
+        return _Resp({"choices": [{"message": {"content": '{"category": "nieznane", "confidence": 0.1}'}}]})
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    from local_file_organizer.classify.ai import OpenAIClient
+    OpenAIClient("http://localhost:1234/v1", "gemma").classify("prompt")
+    assert "Authorization" not in captured["headers"]
+
+
+def test_build_client_selects_by_provider():
+    from local_file_organizer.classify.ai import build_client, OpenAIClient
+    from local_file_organizer.config import AIConfig
+    assert isinstance(build_client(AIConfig(provider="ollama")), OllamaClient)
+    assert isinstance(build_client(AIConfig(provider="openai")), OpenAIClient)
+
+
+def test_classify_entries_uses_openai_provider(tmp_path, monkeypatch):
+    from local_file_organizer.classify.ai import OpenAIClient
+    cfg = _cfg(tmp_path, provider="openai", endpoint="http://localhost:1234/v1")
+    monkeypatch.setattr(
+        OpenAIClient, "classify",
+        lambda self, prompt: {"category": "faktury", "confidence": 0.95},
+    )
+    e = _txt_entry(tmp_path, "f.txt", "tresc faktury")
+    classify_entries([e], cfg, cache=None)
+    assert e.ai_category == "faktury"

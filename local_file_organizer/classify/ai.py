@@ -5,7 +5,7 @@ import json
 import httpx
 
 from ..cache import AICache
-from ..config import Config
+from ..config import AIConfig, Config
 from ..hashing import compute_hash
 from ..models import FileEntry
 from .extractors import extract_text
@@ -31,6 +31,43 @@ class OllamaClient:
         resp.raise_for_status()
         payload = resp.json()
         return json.loads(payload["response"])
+
+
+class OpenAIClient:
+    def __init__(
+        self, endpoint: str, model: str, api_key: str | None = None, timeout: float = 60.0
+    ):
+        self.url = endpoint.rstrip("/") + "/chat/completions"
+        self.model = model
+        self.api_key = api_key
+        self.timeout = timeout
+
+    def classify(self, prompt: str) -> dict:
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        resp = httpx.post(
+            self.url,
+            json={
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "response_format": {"type": "json_object"},
+                "temperature": 0,
+                "stream": False,
+            },
+            headers=headers,
+            timeout=self.timeout,
+        )
+        resp.raise_for_status()
+        payload = resp.json()
+        return json.loads(payload["choices"][0]["message"]["content"])
+
+
+def build_client(ai: AIConfig):
+    """Zwraca klienta klasyfikacji wg ai.provider."""
+    if ai.provider == "openai":
+        return OpenAIClient(ai.endpoint, ai.model, ai.api_key)
+    return OllamaClient(ai.endpoint, ai.model)
 
 
 def build_prompt(
@@ -80,7 +117,7 @@ def classify_entries(
     ai = config.ai
     if not ai.enabled:
         return
-    client = OllamaClient(ai.endpoint, ai.model)
+    client = build_client(ai)
     tax_keys = set(ai.taxonomy)
 
     for entry in entries:
