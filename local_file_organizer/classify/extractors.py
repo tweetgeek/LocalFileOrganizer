@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
+
+# pypdf loguje ostrzezenia (WARNING) dla uszkodzonych/nie-PDF plikow; nasz kod
+# i tak je obsluguje (zwraca None), wiec wyciszamy ten szum na konsoli.
+logging.getLogger("pypdf").setLevel(logging.ERROR)
 
 _PLAIN = {"txt", "md", "csv", "log"}
 
