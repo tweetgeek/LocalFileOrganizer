@@ -33,9 +33,10 @@ class CacheConfig(BaseModel):
 
 class AIConfig(BaseModel):
     enabled: bool = False
-    provider: Literal["ollama"] = "ollama"
+    provider: Literal["ollama", "openai"] = "ollama"
     endpoint: str = "http://localhost:11434"
     model: str = "llama3.2"
+    api_key: str | None = None
     extensions: list[str] = Field(
         default_factory=lambda: ["pdf", "txt", "md", "docx"]
     )

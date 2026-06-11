@@ -84,3 +84,27 @@ def test_ai_max_chars_must_be_positive(tmp_path):
     src = tmp_path / "src"; src.mkdir()
     with pytest.raises(ValueError):
         Config(source_dir=src, dest_dir=tmp_path / "out", ai={"max_chars": 0})
+
+
+def test_ai_provider_openai_and_api_key(tmp_path):
+    src = tmp_path / "src"; src.mkdir()
+    cfg = Config(
+        source_dir=src, dest_dir=tmp_path / "out",
+        ai={"provider": "openai", "api_key": "sk-x",
+            "endpoint": "http://localhost:1234/v1"},
+    )
+    assert cfg.ai.provider == "openai"
+    assert cfg.ai.api_key == "sk-x"
+
+
+def test_ai_api_key_defaults_none(tmp_path):
+    src = tmp_path / "src"; src.mkdir()
+    cfg = Config(source_dir=src, dest_dir=tmp_path / "out")
+    assert cfg.ai.provider == "ollama"
+    assert cfg.ai.api_key is None
+
+
+def test_ai_invalid_provider_rejected(tmp_path):
+    src = tmp_path / "src"; src.mkdir()
+    with pytest.raises(ValueError):
+        Config(source_dir=src, dest_dir=tmp_path / "out", ai={"provider": "bogus"})
