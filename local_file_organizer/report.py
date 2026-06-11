@@ -20,6 +20,7 @@ def build_summary(plan: Plan, entries: list[FileEntry], applied: bool) -> dict:
     moved_bytes = sum(size_by_source.get(m.source, 0) for m in plan.moves)
     duplicates = sum(1 for m in plan.moves if m.reason == Reason.DUPLICATE)
     unsorted = sum(1 for m in plan.moves if m.reason == Reason.UNSORTED)
+    unsorted_files = [str(m.source) for m in plan.moves if m.reason == Reason.UNSORTED]
     ai_count = sum(1 for m in plan.moves if m.reason == Reason.AI)
     review_count = sum(1 for m in plan.moves if m.reason == Reason.REVIEW)
     # ai_from_cache liczy wpisy (oszczednosci wywolan Ollamy), nie przeniesienia
@@ -36,6 +37,7 @@ def build_summary(plan: Plan, entries: list[FileEntry], applied: bool) -> dict:
         "moved_human": human_size(moved_bytes),
         "duplicates": duplicates,
         "unsorted": unsorted,
+        "unsorted_files": unsorted_files,
         "ai_count": ai_count,
         "review_count": review_count,
         "ai_from_cache": from_cache,
@@ -67,6 +69,10 @@ def render_console(summary: dict) -> None:
     table.add_row("Pominiete", str(summary["skipped"]))
     table.add_row("Bledy", str(summary["errors"]))
     console.print(table)
+    if summary["unsorted_files"]:
+        console.print("\n[bold]Pliki bez dopasowania (unsorted):[/bold]")
+        for path in summary["unsorted_files"]:
+            console.print(f"  - {path}", markup=False)
     if summary["encrypted"]:
         console.print("\n[bold]Pliki zabezpieczone haslem:[/bold]")
         for path, fmt in summary["encrypted"]:
