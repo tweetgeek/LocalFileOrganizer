@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import logging
 import zipfile
 from pathlib import Path
+
+# pypdf loguje ostrzezenia (WARNING) dla uszkodzonych/nie-PDF plikow podczas
+# detekcji szyfrowania; wyciszamy je (detekcja jest best-effort).
+logging.getLogger("pypdf").setLevel(logging.ERROR)
 
 _OFFICE = {"docx", "xlsx", "pptx"}
 
