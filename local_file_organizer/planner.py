@@ -19,6 +19,15 @@ def _unique_dest(desired: Path, taken: set[Path]) -> Path:
         i += 1
 
 
+def _note(entry: FileEntry) -> str | None:
+    parts: list[str] = []
+    if entry.is_encrypted:
+        parts.append(f"zabezpieczony haslem ({entry.encrypted_format})")
+    if entry.ai_suggestion:
+        parts.append(f"sugestia AI: {entry.ai_suggestion}")
+    return "; ".join(parts) if parts else None
+
+
 def build_plan(entries: list[FileEntry], config: Config) -> Plan:
     plan = Plan()
     dest_root = config.dest_dir
@@ -43,14 +52,27 @@ def build_plan(entries: list[FileEntry], config: Config) -> Plan:
             )
             continue
 
-        # 2. Folder bazowy
+        # 2. Folder docelowy: review > podkategoria AI > baza/unsorted
+        subcategory: str | None = None
         category = resolve_base(entry.ext, config)
-        if category is None:
-            target_dir = dest_root / config.unknown_dir
-            reason = Reason.UNSORTED
+
+        if entry.ai_review:
+            target_dir = dest_root / config.review_dir
+            reason = Reason.REVIEW
+            category = None
         else:
-            target_dir = dest_root / category
-            reason = Reason.BASE
+            if category is None:
+                base_dir = dest_root / config.unknown_dir
+                reason = Reason.UNSORTED
+            else:
+                base_dir = dest_root / category
+                reason = Reason.BASE
+            if entry.ai_category:
+                subcategory = entry.ai_category
+                target_dir = base_dir / subcategory
+                reason = Reason.AI
+            else:
+                target_dir = base_dir
 
         desired = target_dir / entry.path.name
         collision = desired in taken or desired.exists()
@@ -60,18 +82,14 @@ def build_plan(entries: list[FileEntry], config: Config) -> Plan:
         dest = _unique_dest(desired, taken)
         taken.add(dest)
 
-        note = (
-            f"zabezpieczony haslem ({entry.encrypted_format})"
-            if entry.is_encrypted
-            else None
-        )
         plan.moves.append(
             PlannedMove(
                 source=entry.path,
                 dest=dest,
                 reason=reason,
                 category=category,
-                note=note,
+                subcategory=subcategory,
+                note=_note(entry),
             )
         )
 

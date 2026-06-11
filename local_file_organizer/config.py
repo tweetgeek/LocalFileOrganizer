@@ -31,8 +31,24 @@ class CacheConfig(BaseModel):
     path: Path = Path("./.lfo_cache.sqlite")
 
 
+class AIConfig(BaseModel):
+    enabled: bool = False
+    provider: Literal["ollama", "openai"] = "ollama"
+    endpoint: str = "http://localhost:11434"
+    model: str = "llama3.2"
+    api_key: str | None = None
+    extensions: list[str] = Field(
+        default_factory=lambda: ["pdf", "txt", "md", "docx"]
+    )
+    max_chars: int = Field(default=4000, gt=0)
+    confidence_threshold: float = Field(default=0.7, ge=0.0, le=1.0)
+    on_error: Literal["fallback", "abort"] = "fallback"
+    allow_suggestions: bool = True
+    taxonomy: dict[str, str] = Field(default_factory=dict)
+
+
 class Config(BaseModel):
-    # extra='ignore' -> nieznane klucze (np. ai:) sa pomijane w Planie 1
+    # extra='ignore' -> nieznane klucze sa pomijane
     model_config = ConfigDict(extra="ignore")
 
     source_dir: Path
@@ -45,11 +61,13 @@ class Config(BaseModel):
     categories: dict[str, list[str]] = Field(default_factory=dict)
     unknown_dir: str = "unsorted"
     duplicates_dir: str = "duplikaty"
+    review_dir: str = "do_przejrzenia"
     conflict: Literal["rename", "skip"] = "rename"
     dedup: DedupConfig = Field(default_factory=DedupConfig)
     password_detection: PasswordConfig = Field(default_factory=PasswordConfig)
     report: ReportConfig = Field(default_factory=ReportConfig)
     cache: CacheConfig = Field(default_factory=CacheConfig)
+    ai: AIConfig = Field(default_factory=AIConfig)
 
     @field_validator("source_dir")
     @classmethod
