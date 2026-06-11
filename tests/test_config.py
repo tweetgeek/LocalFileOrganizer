@@ -86,6 +86,20 @@ def test_ai_max_chars_must_be_positive(tmp_path):
         Config(source_dir=src, dest_dir=tmp_path / "out", ai={"max_chars": 0})
 
 
+def test_ai_json_mode_default_and_choices(tmp_path):
+    src = tmp_path / "src"; src.mkdir()
+    assert Config(source_dir=src, dest_dir=tmp_path / "out").ai.json_mode == "json_object"
+    cfg = Config(source_dir=src, dest_dir=tmp_path / "out",
+                 ai={"json_mode": "json_schema"})
+    assert cfg.ai.json_mode == "json_schema"
+
+
+def test_ai_invalid_json_mode_rejected(tmp_path):
+    src = tmp_path / "src"; src.mkdir()
+    with pytest.raises(ValueError):
+        Config(source_dir=src, dest_dir=tmp_path / "out", ai={"json_mode": "bogus"})
+
+
 def test_ai_provider_openai_and_api_key(tmp_path):
     src = tmp_path / "src"; src.mkdir()
     cfg = Config(

@@ -52,6 +52,7 @@ ai:
 #   provider: openai
 #   endpoint: http://localhost:1234/v1   # baza z /v1; klient dokleja /chat/completions
 #   model: google/gemma-4-e4b            # identyfikator modelu zaladowanego w LM Studio
+#   json_mode: json_schema               # LM Studio wymaga json_schema (json_object daje 400)
 #   api_key: null                        # LM Studio nie wymaga; ustaw dla zdalnych serwerow
 #   extensions: [pdf, txt, md, docx]
 #   max_chars: 4000

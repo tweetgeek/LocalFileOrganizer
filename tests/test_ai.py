@@ -282,3 +282,55 @@ def test_classify_http_status_error_abort_raises(tmp_path, monkeypatch):
     e = _txt_entry(tmp_path, "f.txt", "tresc")
     with pytest.raises(httpx.HTTPStatusError):
         classify_entries([e], cfg, cache=None)
+
+
+def test_extract_json_handles_fences_and_prose():
+    from local_file_organizer.classify.ai import _extract_json
+    assert _extract_json('{"a": 1}') == {"a": 1}
+    assert _extract_json('```json\n{"a": 1}\n```') == {"a": 1}
+    assert _extract_json('Oto wynik:\n{"a": 1}\nGotowe.') == {"a": 1}
+
+
+def test_openai_client_json_schema_mode(monkeypatch):
+    captured = {}
+
+    def fake_post(url, json, headers, timeout):
+        captured["json"] = json
+        return _Resp({"choices": [{"message": {"content": '{"category": "faktury", "confidence": 0.9, "suggested_name": null}'}}]})
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    from local_file_organizer.classify.ai import OpenAIClient
+    result = OpenAIClient("http://x/v1", "gemma", json_mode="json_schema").classify("p")
+    assert result["category"] == "faktury"
+    assert captured["json"]["response_format"]["type"] == "json_schema"
+
+
+def test_openai_client_off_mode_omits_response_format(monkeypatch):
+    captured = {}
+
+    def fake_post(url, json, headers, timeout):
+        captured["json"] = json
+        return _Resp({"choices": [{"message": {"content": '{"category": "nieznane", "confidence": 0.1}'}}]})
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    from local_file_organizer.classify.ai import OpenAIClient
+    OpenAIClient("http://x/v1", "gemma", json_mode="off").classify("p")
+    assert "response_format" not in captured["json"]
+
+
+def test_openai_client_parses_fenced_content(monkeypatch):
+    def fake_post(url, json, headers, timeout):
+        return _Resp({"choices": [{"message": {"content": "```json\n{\"category\": \"umowy\", \"confidence\": 0.8}\n```"}}]})
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    from local_file_organizer.classify.ai import OpenAIClient
+    result = OpenAIClient("http://x/v1", "gemma").classify("p")
+    assert result["category"] == "umowy"
+
+
+def test_build_client_openai_passes_json_mode():
+    from local_file_organizer.classify.ai import build_client, OpenAIClient
+    from local_file_organizer.config import AIConfig
+    client = build_client(AIConfig(provider="openai", json_mode="json_schema"))
+    assert isinstance(client, OpenAIClient)
+    assert client.json_mode == "json_schema"

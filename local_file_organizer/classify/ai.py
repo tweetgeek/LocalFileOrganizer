@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 import httpx
 
@@ -33,39 +34,82 @@ class OllamaClient:
         return json.loads(payload["response"])
 
 
+# Schemat structured-output dla trybu json_schema (np. LM Studio, ktore nie
+# obsluguje json_object). Wymusza czysty JSON o wymaganym ksztalcie.
+_CLASSIFICATION_SCHEMA = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "klasyfikacja",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "category": {"type": "string"},
+                "confidence": {"type": "number"},
+                "suggested_name": {"type": ["string", "null"]},
+            },
+            "required": ["category", "confidence", "suggested_name"],
+            "additionalProperties": False,
+        },
+    },
+}
+
+
+def _extract_json(content: str) -> dict:
+    """Parsuje JSON z odpowiedzi modelu, tolerujac ogrodzenia ```json oraz
+    tekst dookola (male modele czesto owijaja JSON w plotki/prose)."""
+    text = content.strip()
+    fence = re.match(r"^```[a-zA-Z0-9]*\s*(.*?)\s*```$", text, re.DOTALL)
+    if fence:
+        text = fence.group(1).strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start, end = text.find("{"), text.rfind("}")
+        if start != -1 and end > start:
+            return json.loads(text[start : end + 1])
+        raise
+
+
 class OpenAIClient:
     def __init__(
-        self, endpoint: str, model: str, api_key: str | None = None, timeout: float = 60.0
+        self,
+        endpoint: str,
+        model: str,
+        api_key: str | None = None,
+        json_mode: str = "json_object",
+        timeout: float = 60.0,
     ):
         self.url = endpoint.rstrip("/") + "/chat/completions"
         self.model = model
         self.api_key = api_key
+        self.json_mode = json_mode
         self.timeout = timeout
 
     def classify(self, prompt: str) -> dict:
         headers = {}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-        resp = httpx.post(
-            self.url,
-            json={
-                "model": self.model,
-                "messages": [{"role": "user", "content": prompt}],
-                "response_format": {"type": "json_object"},
-                "temperature": 0,
-            },
-            headers=headers,
-            timeout=self.timeout,
-        )
+        body: dict = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0,
+        }
+        if self.json_mode == "json_object":
+            body["response_format"] = {"type": "json_object"}
+        elif self.json_mode == "json_schema":
+            body["response_format"] = _CLASSIFICATION_SCHEMA
+        # "off" -> bez response_format (maksymalna kompatybilnosc serwerow)
+        resp = httpx.post(self.url, json=body, headers=headers, timeout=self.timeout)
         resp.raise_for_status()
-        payload = resp.json()
-        return json.loads(payload["choices"][0]["message"]["content"])
+        content = resp.json()["choices"][0]["message"]["content"]
+        return _extract_json(content)
 
 
 def build_client(ai: AIConfig) -> OllamaClient | OpenAIClient:
     """Zwraca klienta klasyfikacji wg ai.provider."""
     if ai.provider == "openai":
-        return OpenAIClient(ai.endpoint, ai.model, ai.api_key)
+        return OpenAIClient(ai.endpoint, ai.model, ai.api_key, ai.json_mode)
     return OllamaClient(ai.endpoint, ai.model)
 
 
