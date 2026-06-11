@@ -60,3 +60,21 @@ bazowego (a `abort` przerywa z czytelnym komunikatem).
 
 Wymaga uruchomionej Ollamy (`ollama serve`) i pobranego modelu
 (`ollama pull llama3.2`).
+
+### Inne backendy (OpenAI-compatible)
+
+Zamiast Ollamy mozna uzyc dowolnego serwera zgodnego z OpenAI API
+(LM Studio, llama.cpp server, vLLM, LocalAI, a takze Ollama przez `/v1`).
+Ustaw w konfiguracji:
+
+    ai:
+      provider: openai
+      endpoint: http://localhost:1234/v1   # LM Studio: baza z /v1
+      model: google/gemma-4-e4b            # nazwa modelu zaladowanego w serwerze
+      api_key: null                        # opcjonalnie, dla serwerow wymagajacych klucza
+
+Klient wysyla `POST /chat/completions` z `response_format: json_object` i
+`temperature: 0`. Male modele (np. Gemma 4B) bywaja mniej karne w formacie
+JSON — pojedyncza wadliwa odpowiedz jest pomijana (plik leci dalej), a trwaly
+blad serwera (np. 401 zly klucz, 404 zly model) przerywa caly etap AI
+(w trybie `fallback` schodzi do trybu bazowego, w `abort` daje czytelny blad).
