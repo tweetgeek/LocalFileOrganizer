@@ -62,7 +62,7 @@ class OpenAIClient:
         return json.loads(payload["choices"][0]["message"]["content"])
 
 
-def build_client(ai: AIConfig) -> "OllamaClient | OpenAIClient":
+def build_client(ai: AIConfig) -> OllamaClient | OpenAIClient:
     """Zwraca klienta klasyfikacji wg ai.provider."""
     if ai.provider == "openai":
         return OpenAIClient(ai.endpoint, ai.model, ai.api_key)

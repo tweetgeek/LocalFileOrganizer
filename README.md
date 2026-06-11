@@ -48,7 +48,7 @@ Wykrywanie hasla dla archiwow `.rar` wymaga zewnetrznego narzedzia `unrar`
 lub `bsdtar` w PATH. Jego brak nie powoduje bledu — taki plik jest po prostu
 traktowany jako niezabezpieczony (detekcja jest best-effort).
 
-## Klasyfikacja AI (Ollama)
+## Klasyfikacja AI (Ollama / OpenAI-compatible)
 
 Gdy `ai.enabled: true`, dla rozszerzen z `ai.extensions` aplikacja czyta tresc,
 wysyla fragment do Ollamy i przypisuje podkategorie z `ai.taxonomy`
