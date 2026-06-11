@@ -1,0 +1,63 @@
+source_dir: /sciezka/balagan
+dest_dir:   /sciezka/uporzadkowane
+mode: category
+recursive: true
+max_depth: 5
+ignore: [".git", "node_modules", ".*"]
+follow_symlinks: false
+
+categories:
+  apps:      [dmg, pkg, exe, apk, msi]
+  archives:  [zip, rar, 7z, tar, gz, tgz]
+  3dprint:   [stl, 3mf, obj, gcode, amf, step, stp]
+  cad:       [dwg, dxf, skp]
+  docs:      [pdf, doc, docx, odt, txt, md]
+  images:    [jpg, jpeg, png, gif, webp, heic, heif, bmp, tiff, svg]
+  audio:     [mp3, wav, flac, ogg, aac, m4a, aiff]
+  videos:    [mp4, mov, avi, mkv, hevc]
+  data:      [json, xml, csv, yaml, yml]
+  code:      [py, html, js, css, php, java, c, cpp, h, hpp]
+
+unknown_dir:    unsorted
+duplicates_dir: duplikaty
+conflict:       rename
+
+dedup:   { method: hash, action: quarantine }
+password_detection: { enabled: true, formats: [pdf, zip, 7z, rar, docx, xlsx] }
+
+report: { format: [console, json], output: ./lfo-report.json }
+cache:  { enabled: true, path: ./.lfo_cache.sqlite }
+
+review_dir: do_przejrzenia
+
+ai:
+  enabled: true
+  provider: ollama
+  endpoint: http://localhost:11434
+  model: llama3.2
+  extensions: [pdf, txt, md, docx]
+  max_chars: 4000
+  confidence_threshold: 0.7
+  on_error: fallback
+  allow_suggestions: true
+  taxonomy:
+    faktury: "zawiera NIP, slowo 'faktura', kwoty, dane firmy"
+    umowy:   "zawiera 'umowa', strony, paragrafy"
+
+# --- Wariant: serwer zgodny z OpenAI (LM Studio, llama.cpp, vLLM, Ollama /v1) ---
+# Zakomentuj sekcje `ai:` powyzej i odkomentuj ponizsza, aby uzyc LM Studio:
+#
+# ai:
+#   enabled: true
+#   provider: openai
+#   endpoint: http://localhost:1234/v1   # baza z /v1; klient dokleja /chat/completions
+#   model: google/gemma-4-e4b            # identyfikator modelu zaladowanego w LM Studio
+#   api_key: null                        # LM Studio nie wymaga; ustaw dla zdalnych serwerow
+#   extensions: [pdf, txt, md, docx]
+#   max_chars: 4000
+#   confidence_threshold: 0.7
+#   on_error: fallback
+#   allow_suggestions: true
+#   taxonomy:
+#     faktury: "zawiera NIP, slowo 'faktura', kwoty, dane firmy"
+#     umowy:   "zawiera 'umowa', strony, paragrafy"
