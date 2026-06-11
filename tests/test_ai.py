@@ -249,3 +249,36 @@ def test_classify_entries_uses_openai_provider(tmp_path, monkeypatch):
     e = _txt_entry(tmp_path, "f.txt", "tresc faktury")
     classify_entries([e], cfg, cache=None)
     assert e.ai_category == "faktury"
+    assert e.ai_review is False
+
+
+def test_classify_http_status_error_stops_batch(tmp_path, monkeypatch):
+    from local_file_organizer.classify.ai import OpenAIClient
+    cfg = _cfg(tmp_path, provider="openai", endpoint="http://localhost:1234/v1")
+    calls = []
+
+    def boom(self, prompt):
+        calls.append(1)
+        req = httpx.Request("POST", "http://x/chat/completions")
+        raise httpx.HTTPStatusError("401", request=req, response=httpx.Response(401, request=req))
+
+    monkeypatch.setattr(OpenAIClient, "classify", boom)
+    e1 = _txt_entry(tmp_path, "a.txt", "tresc a")
+    e2 = _txt_entry(tmp_path, "b.txt", "tresc b zupelnie inna")
+    classify_entries([e1, e2], cfg, cache=None)  # fallback -> nie rzuca
+    assert e1.ai_category is None and e2.ai_category is None
+    assert len(calls) == 1   # batch-stop: drugi plik juz nie wola serwera
+
+
+def test_classify_http_status_error_abort_raises(tmp_path, monkeypatch):
+    from local_file_organizer.classify.ai import OpenAIClient
+    cfg = _cfg(tmp_path, provider="openai", on_error="abort")
+
+    def boom(self, prompt):
+        req = httpx.Request("POST", "http://x")
+        raise httpx.HTTPStatusError("401", request=req, response=httpx.Response(401, request=req))
+
+    monkeypatch.setattr(OpenAIClient, "classify", boom)
+    e = _txt_entry(tmp_path, "f.txt", "tresc")
+    with pytest.raises(httpx.HTTPStatusError):
+        classify_entries([e], cfg, cache=None)

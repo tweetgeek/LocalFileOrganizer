@@ -53,7 +53,6 @@ class OpenAIClient:
                 "messages": [{"role": "user", "content": prompt}],
                 "response_format": {"type": "json_object"},
                 "temperature": 0,
-                "stream": False,
             },
             headers=headers,
             timeout=self.timeout,
@@ -63,7 +62,7 @@ class OpenAIClient:
         return json.loads(payload["choices"][0]["message"]["content"])
 
 
-def build_client(ai: AIConfig):
+def build_client(ai: AIConfig) -> "OllamaClient | OpenAIClient":
     """Zwraca klienta klasyfikacji wg ai.provider."""
     if ai.provider == "openai":
         return OpenAIClient(ai.endpoint, ai.model, ai.api_key)
@@ -145,8 +144,10 @@ def classify_entries(
             )
             try:
                 result = client.classify(prompt)
-            except httpx.TransportError:
-                # serwer niedostepny/timeout -> przerwij AI dla calej reszty
+            except (httpx.TransportError, httpx.HTTPStatusError):
+                # serwer niedostepny/timeout albo trwaly blad HTTP (np. 401 zly
+                # api_key, 404 zly model) -> przerwij AI dla calej reszty,
+                # bo ten blad powtorzy sie dla kazdego pliku
                 if ai.on_error == "abort":
                     raise
                 return
